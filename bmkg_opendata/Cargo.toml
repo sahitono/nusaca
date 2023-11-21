@@ -1,0 +1,16 @@
+[package]
+name = "bmkg_opendata"
+version = "0.1.0"
+edition = "2021"
+publish = false
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "bmkg_opendata"
+path = "src/lib.rs"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0.192", features = ["derive"] }
+serde-xml-rs = "0.6.0"
+tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
