@@ -12,19 +12,18 @@ pub struct Params {
 pub async fn get_regions(
     db_conn: &DatabaseConnection,
     keyword: Option<String>,
+    parent_id: Option<i32>,
 ) -> Result<Vec<region::Model>, Box<dyn Error>> {
     let regions = region::Entity::find()
-        .apply_if(Some(keyword), |mut query, v| {
-            if v.is_some() {
-                let keyword = v.unwrap();
-                query.filter(
-                    Condition::any()
-                        .add(region::Column::NameId.contains(&keyword))
-                        .add(region::Column::NameEn.contains(&keyword)),
-                )
-            } else {
-                query
-            }
+        .apply_if(keyword, |mut query, v| {
+            query.filter(
+                Condition::any()
+                    .add(region::Column::NameId.contains(&v))
+                    .add(region::Column::NameEn.contains(&v)),
+            )
+        })
+        .apply_if(parent_id, |mut query, v| {
+            query.filter(region::Column::ParentId.eq(parent_id))
         })
         .all(db_conn)
         .await

@@ -58,6 +58,41 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(WeatherIssued::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(WeatherIssued::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(WeatherIssued::Timestamp)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(WeatherIssued::ProductionCenter)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(WeatherIssued::Source).string().not_null())
+                    .col(
+                        ColumnDef::new(WeatherIssued::CreatedAt)
+                            .timestamp()
+                            .default(SimpleExpr::Keyword(Keyword::CurrentTimestamp))
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await
+            .expect("Failed to create weather issued");
+
+        manager
+            .create_table(
+                Table::create()
                     .table(WeatherPrediction::Table)
                     .if_not_exists()
                     .col(
@@ -74,7 +109,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(WeatherPrediction::ParameterId)
-                            .integer()
+                            .string()
                             .not_null(),
                     )
                     .col(ColumnDef::new(WeatherPrediction::Unit).string().not_null())
@@ -85,8 +120,14 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(
+                        ColumnDef::new(WeatherPrediction::IssuedId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(WeatherPrediction::CreatedAt)
-                            .string()
+                            .timestamp()
+                            .default(SimpleExpr::Keyword(Keyword::CurrentTimestamp))
                             .not_null(),
                     )
                     .foreign_key(
@@ -98,6 +139,11 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .from(WeatherPrediction::Table, WeatherPrediction::ParameterId)
                             .to(WeatherParameter::Table, WeatherParameter::Id),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(WeatherPrediction::Table, WeatherPrediction::IssuedId)
+                            .to(WeatherIssued::Table, WeatherPrediction::Id),
                     )
                     .to_owned(),
             )
@@ -136,6 +182,17 @@ impl MigrationTrait for Migration {
             )
             .await
             .expect("Failed drop prediction");
+
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(WeatherIssued::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
+            .await
+            .expect("Failed to drop weather issued");
+
         manager
             .drop_table(
                 Table::drop()
@@ -175,6 +232,16 @@ pub enum WeatherParameter {
 }
 
 #[derive(Iden)]
+pub enum WeatherIssued {
+    Table,
+    Id,
+    Timestamp,
+    CreatedAt,
+    Source,
+    ProductionCenter,
+}
+
+#[derive(Iden)]
 pub enum WeatherPrediction {
     Table,
     Id,
@@ -183,5 +250,6 @@ pub enum WeatherPrediction {
     Unit,
     Value,
     Timestamp,
+    IssuedId,
     CreatedAt,
 }

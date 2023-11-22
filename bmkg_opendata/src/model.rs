@@ -17,7 +17,7 @@ pub struct Forecast {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Issue {
-    pub timestamp: i64,
+    pub timestamp: String,
     pub year: u32,
     pub month: u32,
     pub day: u32,

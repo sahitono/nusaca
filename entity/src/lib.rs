@@ -3,5 +3,6 @@
 pub mod prelude;
 
 pub mod region;
+pub mod weather_issued;
 pub mod weather_parameter;
 pub mod weather_prediction;

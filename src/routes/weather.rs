@@ -18,8 +18,10 @@ use validator::Validate;
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct Params {
+    #[serde(rename = "regionName")]
     region_name: Option<String>,
     #[validate(length(min = 1, message = "Can not be empty"))]
+    #[serde(rename = "regionCode")]
     region_code: Option<String>,
     parameter: Option<String>,
     date: Option<NaiveDate>,

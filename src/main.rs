@@ -4,14 +4,16 @@ use crate::routes::weather::get_predictions;
 use axum::extract::FromRef;
 use axum::routing::get;
 use axum::{Router, ServiceExt};
+use chrono::Duration;
 use dotenvy::dotenv;
 use nusaca::database::DatabaseSettings;
 use nusaca::scraper::scrape_weathers;
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::{Database, DatabaseConnection, SqlxSqlitePoolConnection};
 use std::env;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use thiserror::Error;
+use tokio::time::sleep;
 use tokio_cron_scheduler::JobScheduler;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{log, Level};
@@ -49,17 +51,17 @@ async fn main() -> Result<(), Error> {
         .init();
     dotenv().ok();
 
-    let scheduler = JobScheduler::new().await.unwrap();
-    println!("begin scraping at {:?}", chrono::Utc::now());
-
     let task = tokio::spawn(async move {
+        // sleep(std::time::Duration::from_secs(60)).await;
+
         let duration = std::time::Duration::from_secs(24 * 60 * 60);
         let db_conn = create_db_conn().await.unwrap();
 
         loop {
             tracing::info!("begin scraping at {:?}", chrono::Utc::now());
-            // scrape_weathers(&db_conn).await.expect("Failed to scrape");
+            scrape_weathers(&db_conn).await.expect("Failed to scrape");
             tokio::time::sleep(duration).await;
+            tracing::info!("finished scraping at {:?}", chrono::Utc::now());
         }
     });
 

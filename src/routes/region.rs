@@ -11,15 +11,18 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct Params {
     keyword: Option<String>,
+    #[serde(rename = "parentId")]
+    parent_id: Option<i32>,
 }
 
 pub async fn get_regions(
     State(app): State<AppState>,
     Query(params): Query<Params>,
 ) -> impl IntoResponse {
-    let regions = use_cases::region::get_regions(&app.db_connection, params.keyword)
-        .await
-        .unwrap();
+    let regions =
+        use_cases::region::get_regions(&app.db_connection, params.keyword, params.parent_id)
+            .await
+            .unwrap();
     let response = BaseResponse { data: regions };
     Json(response)
 }

@@ -1,12 +1,10 @@
-use bmkg_opendata::model::{Area, StringOrNumber};
+use bmkg_opendata::model::Area;
 use entity::region::ActiveModel;
-use entity::{region, weather_prediction};
+use entity::{region, weather_issued, weather_prediction};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbConn, DbErr, EntityTrait, QueryFilter,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter, TransactionTrait,
 };
-use tracing_subscriber::fmt::format;
 
 pub async fn scrape_weathers(db_conn: &DbConn) -> Result<(), Box<dyn std::error::Error>> {
     let regions = region::Entity::find()
@@ -33,8 +31,31 @@ pub async fn scrape_weather(
 
     tracing::debug!("storing to db: {}", parent_region_name);
 
+    let existing_weather = weather_issued::Entity::find()
+        .filter(weather_issued::Column::Timestamp.eq(&forecast.forecast.issue.timestamp))
+        .all(db_conn)
+        .await
+        .unwrap();
+
+    if !existing_weather.is_empty() {
+        tracing::debug!("weather already exist, skipping");
+        return Ok(());
+    };
+
+    let issued = weather_issued::ActiveModel {
+        timestamp: Set(forecast.forecast.issue.timestamp),
+        source: Set(forecast.source),
+        production_center: Set(forecast.production_center),
+        ..Default::default()
+    }
+    .save(db_conn)
+    .await
+    .expect("Failed to save forecast issue");
+
+    let issued_id = issued.id.unwrap();
+
     for area in forecast.forecast.area {
-        let trx = db_conn.begin().await?;
+        // let trx = db_conn.begin().await?;
 
         if area.parameter.is_none() {
             tracing::debug!("area empty: {}", &area.id);
@@ -43,7 +64,7 @@ pub async fn scrape_weather(
 
         let db_region = region::Entity::find()
             .filter(region::Column::Code.eq(&area.id))
-            .one(&trx)
+            .one(db_conn)
             .await?;
         let region_id = match db_region {
             Some(reg) => reg.id,
@@ -65,15 +86,15 @@ pub async fn scrape_weather(
             for time_range in parameter.time_range {
                 for value in time_range.value {
                     let result = weather_prediction::ActiveModel {
-                        value: Set(Some(value.value.clone())),
+                        value: Set(value.value.clone()),
                         region_id: Set(region_id),
                         timestamp: Set(time_range.datetime.clone()),
                         unit: Set(value.unit),
                         parameter_id: Set(parameter.id.clone()),
-                        created_at: Set(chrono::Utc::now()),
+                        issued_id: Set(issued_id),
                         ..Default::default()
                     }
-                    .save(&trx)
+                    .save(db_conn)
                     .await;
                     match result {
                         Ok(res) => {}
@@ -87,7 +108,7 @@ pub async fn scrape_weather(
             }
         }
 
-        trx.commit().await?;
+        // trx.commit().await?;
     }
     Ok(())
 }
@@ -114,7 +135,7 @@ async fn create_region(
         longitude: Set(area.longitude),
         name_en: Set(name_en),
         name_id: Set(name_id),
-        parent_id: Set(Some(parent_region_id.clone())),
+        parent_id: Set(Some(*parent_region_id)),
         ..Default::default()
     }
     .save(db_conn)

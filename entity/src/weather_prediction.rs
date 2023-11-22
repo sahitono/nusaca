@@ -11,9 +11,10 @@ pub struct Model {
     pub region_id: i32,
     pub parameter_id: String,
     pub unit: String,
-    pub value: Option<String>,
+    pub value: String,
     pub timestamp: String,
-    pub created_at: DateTimeUtc,
+    pub issued_id: i32,
+    pub created_at: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -27,6 +28,14 @@ pub enum Relation {
     )]
     Region,
     #[sea_orm(
+        belongs_to = "super::weather_issued::Entity",
+        from = "Column::IssuedId",
+        to = "super::weather_issued::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    WeatherIssued,
+    #[sea_orm(
         belongs_to = "super::weather_parameter::Entity",
         from = "Column::ParameterId",
         to = "super::weather_parameter::Column::Id",
@@ -39,6 +48,12 @@ pub enum Relation {
 impl Related<super::region::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Region.def()
+    }
+}
+
+impl Related<super::weather_issued::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WeatherIssued.def()
     }
 }
 

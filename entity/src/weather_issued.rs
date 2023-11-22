@@ -4,24 +4,25 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
-#[sea_orm(table_name = "province")]
+#[sea_orm(table_name = "weather_issued")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key)]
     pub id: i32,
-    pub name_en: String,
-    pub code: String,
-    pub name_id: String,
+    pub timestamp: String,
+    pub production_center: String,
+    pub source: String,
+    pub created_at: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::city::Entity")]
-    City,
+    #[sea_orm(has_many = "super::weather_prediction::Entity")]
+    WeatherPrediction,
 }
 
-impl Related<super::city::Entity> for Entity {
+impl Related<super::weather_prediction::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::City.def()
+        Relation::WeatherPrediction.def()
     }
 }
 
