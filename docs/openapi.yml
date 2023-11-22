@@ -1,0 +1,75 @@
+openapi: 3.1.0
+info:
+  title: Nusaca
+  description: |-
+    Nusantara Cuaca API source from BMKG Data
+  version: 0.1.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: https://nusaca.sahitono.space/api
+tags:
+  - name: regions
+    description: region list
+  - name: parameter
+    description: weather parameter
+  - name: prediction
+    description: weather prediction
+paths:
+  /regions:
+    get:
+      tags:
+        - region
+      summary: Get all region
+      description: Get all region with query
+      operationId: getRegion
+      parameters:
+        - name: parentId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+  /weather-parameters:
+    get:
+      tags:
+        - parameter
+      summary: Get all weather parameter
+      description: Get all weather parameter
+      operationId: getParameter
+  /weathers:
+    get:
+      tags:
+        - prediction
+      summary: Get all weather prediction
+      description: Get all weather prediction
+      operationId: getPrediction
+      parameters:
+        - name: regionName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: regionCode
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: parameter
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: false
+          description: YYYY-mm-dd
+          schema:
+            type:
+              - string
+
