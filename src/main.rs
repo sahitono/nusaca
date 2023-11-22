@@ -79,7 +79,7 @@ async fn main() -> Result<(), Error> {
         .route("/", get(hello_world))
         .route("/api/regions", get(get_regions))
         .route("/api/weather-parameters", get(get_parameters))
-        .route("/api/weather", get(get_predictions))
+        .route("/api/weathers", get(get_predictions))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
