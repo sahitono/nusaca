@@ -1,31 +1,27 @@
-use crate::routes::parameter::get_parameters;
-use crate::routes::region::get_regions;
-use crate::routes::weather::get_predictions;
-use axum::extract::FromRef;
+use crate::routes::parameter as weather_parameter;
+use crate::routes::region;
+use crate::routes::weather as weather_prediction;
 use axum::routing::get;
-use axum::{Router, ServiceExt};
-use chrono::Duration;
+use axum::Router;
 use dotenvy::dotenv;
 use nusaca::database::DatabaseSettings;
+use nusaca::infrastructure::state::AppState;
 use nusaca::scraper::scrape_weathers;
-use sea_orm::{Database, DatabaseConnection, SqlxSqlitePoolConnection};
+use sea_orm::{Database, DatabaseConnection};
 use std::env;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use thiserror::Error;
-use tokio::time::sleep;
-use tokio_cron_scheduler::JobScheduler;
+use tokio::task::JoinHandle;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{log, Level};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use utoipa::OpenApi;
+use utoipa_rapidoc::RapiDoc;
+use utoipa_swagger_ui::SwaggerUi;
 
 mod routes;
-
-#[derive(Clone, FromRef)]
-pub struct AppState {
-    pub db_connection: DatabaseConnection,
-}
 
 async fn create_db_conn() -> Result<DatabaseConnection, Error> {
     let db_uri = env::var("DATABASE_URL").unwrap();
@@ -51,19 +47,7 @@ async fn main() -> Result<(), Error> {
         .init();
     dotenv().ok();
 
-    let task = tokio::spawn(async move {
-        // sleep(std::time::Duration::from_secs(60)).await;
-
-        let duration = std::time::Duration::from_secs(24 * 60 * 60);
-        let db_conn = create_db_conn().await.unwrap();
-
-        loop {
-            tracing::info!("begin scraping at {:?}", chrono::Utc::now());
-            scrape_weathers(&db_conn).await.expect("Failed to scrape");
-            tokio::time::sleep(duration).await;
-            tracing::info!("finished scraping at {:?}", chrono::Utc::now());
-        }
-    });
+    let task = spawn_task().await;
 
     let port: u16 = env::var("PORT")
         .unwrap_or("3000".to_string())
@@ -75,11 +59,35 @@ async fn main() -> Result<(), Error> {
         db_connection: create_db_conn().await.unwrap(),
     };
 
+    #[derive(OpenApi)]
+    #[openapi(
+        info(title = "NUSACA API",description = "Weather prediction from BMKG open data"),
+        paths(
+            region::get_regions,
+            weather_parameter::get_parameters,
+            weather_prediction::get_predictions
+        ),
+        components(
+            schemas()
+        ),
+        tags(
+            (name = "region", description = "Region API")
+        )
+    )]
+    struct ApiDoc;
+
     let app = Router::new()
+        .merge(
+            SwaggerUi::new("/api/docs/swagger-ui").url("/api/docs/openapi.json", ApiDoc::openapi()),
+        )
+        .merge(RapiDoc::new("/api/docs/openapi.json").path("/api/docs"))
         .route("/", get(hello_world))
-        .route("/api/regions", get(get_regions))
-        .route("/api/weather-parameters", get(get_parameters))
-        .route("/api/weathers", get(get_predictions))
+        .route("/api/regions", get(region::get_regions))
+        .route(
+            "/api/weather-parameters",
+            get(weather_parameter::get_parameters),
+        )
+        .route("/api/weathers", get(weather_prediction::get_predictions))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
@@ -98,6 +106,22 @@ async fn main() -> Result<(), Error> {
     tracing::info!("Aborting task");
     task.abort();
     Ok(())
+}
+
+async fn spawn_task() -> JoinHandle<()> {
+    tokio::spawn(async move {
+        // sleep(std::time::Duration::from_secs(60)).await;
+
+        let duration = std::time::Duration::from_secs(24 * 60 * 60);
+        let db_conn = create_db_conn().await.unwrap();
+
+        loop {
+            tracing::info!("begin scraping at {:?}", chrono::Utc::now());
+            scrape_weathers(&db_conn).await.expect("Failed to scrape");
+            tracing::info!("finished scraping at {:?}", chrono::Utc::now());
+            tokio::time::sleep(duration).await;
+        }
+    })
 }
 
 async fn hello_world() -> &'static str {

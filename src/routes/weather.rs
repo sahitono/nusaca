@@ -2,15 +2,12 @@ use crate::AppState;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::Json;
-use chrono::format::Fixed::TimezoneOffset;
-use chrono::{FixedOffset, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone};
+use bmkg_opendata::model::StringOrNumber;
+use chrono::{Local, NaiveDate};
 use entity::{region, weather_prediction};
 use nusaca::base::response::BaseResponse;
-use sea_orm::prelude::DateTimeUtc;
-use sea_orm::{
-    ColumnTrait, DbBackend, EntityTrait, QueryFilter, QuerySelect, QueryTrait, Related,
-    RelationTrait,
-};
+use nusaca::response::WeatherResponse;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect, QueryTrait, RelationTrait};
 use sea_query::Condition;
 use sea_query::JoinType;
 use serde::Deserialize;
@@ -25,8 +22,22 @@ pub struct Params {
     region_code: Option<String>,
     parameter: Option<String>,
     date: Option<NaiveDate>,
+    unit: Option<String>,
 }
 
+#[utoipa::path(
+get,
+    path = "/api/weathers",
+    responses(
+        (status = 200, body = BaseResponse<Vec<RegionRead>>)
+    ),
+    params(
+        ("regionCode" = String, Query, description = "Find weather by region code"),
+        ("parameter" = String, Query, description = "Find weather by parameter", nullable = true),
+        ("unit" = String, Query, description = "Filter weather by unit", nullable = true),
+        ("date" = String, Query, description = "Filter weather by date, default to today", example = "2023-11-23", nullable = true),
+    )
+)]
 pub async fn get_predictions(
     State(app): State<AppState>,
     Query(params): Query<Params>,
@@ -42,14 +53,19 @@ pub async fn get_predictions(
                 .add(weather_prediction::Column::Timestamp.like(format!("{}%", timestamp))),
         )
         .apply_if(params.parameter, |q, v| {
-            // match v {
-            //     Some(v) => q.filter(weather_prediction::Column::ParameterId.eq(v)),
-            //     None => q,
-            // }
             q.filter(weather_prediction::Column::ParameterId.eq(v))
+        })
+        .apply_if(params.unit, |q, v| {
+            q.filter(weather_prediction::Column::Unit.eq(v))
         });
 
-    let models = query.all(&app.db_connection).await.unwrap();
+    let models: Vec<WeatherResponse> = query
+        .all(&app.db_connection)
+        .await
+        .unwrap()
+        .iter()
+        .map(|x| WeatherResponse::try_from(x.clone()).unwrap())
+        .collect();
 
     Json(BaseResponse { data: models })
 }

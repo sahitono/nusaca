@@ -1,13 +1,7 @@
 use entity::region;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryTrait};
 use sea_query::Condition;
-use serde::Deserialize;
 use std::error::Error;
-
-#[derive(Deserialize)]
-pub struct Params {
-    keyword: Option<String>,
-}
 
 pub async fn get_regions(
     db_conn: &DatabaseConnection,
@@ -15,7 +9,7 @@ pub async fn get_regions(
     parent_id: Option<i32>,
 ) -> Result<Vec<region::Model>, Box<dyn Error>> {
     let regions = region::Entity::find()
-        .apply_if(keyword, |mut query, v| {
+        .apply_if(keyword, |query, v| {
             query.filter(
                 Condition::any()
                     .add(region::Column::NameId.contains(&v))

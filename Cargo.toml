@@ -14,14 +14,14 @@ bmkg_opendata = { path = "bmkg_opendata" }
 migration = { path = "migration" }
 axum = {version = "0.6.20", features = ["macros"]} # Web framework that focuses on ergonomics and modularity.
 dotenvy = "^0.15.7"
-hyper = { version = "^0.14.27", features = ["full"] } # A fast and correct HTTP library.
+hyper = { version = "1.0.1", features = ["full"] } # A fast and correct HTTP library.
 tokio = { version = "^1.34.0", features = ["full"] } # Event-driven, non-blocking I/O platform.
 tower = {version = "^0.4.13" , features = ["tracing"]} # Modular reusable components for building robust clients and servers.
 tower-http = {version = "^0.4.4" , features = ["trace"]} # Modular reusable components for building robust clients and servers.
 serde_json = "^1.0.108" # Serde serializion/deserialization of JSON data.
 once_cell = "1.18.0" # Single assignment cells and lazy values.
 base64 = "0.21.0" # Encode and decode base64 as bytes or utf8.
-http = "0.2.6" # Types for HTTP requests and responses.
+http = "1.0.0" # Types for HTTP requests and responses.
 reqwest = { version = "0.11", features = ["json"] }
 sea-orm = { version = "^0", features = [ "sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono", "with-time", "with-json" ] }
 sea-query = "^0"
@@ -29,6 +29,9 @@ thiserror = "1.0.39"
 tokio-cron-scheduler = "*"
 tracing = "0.1.40" #  Application-level tracing for Rust.
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+utoipa = "4"
+utoipa-rapidoc = {version = "1.0.0", features = ["axum"]}
+utoipa-swagger-ui = {version = "4.0.0", features = ["axum"]}
 serde = { version = "1.0.192", features = ["derive"] }
 serde-xml-rs = "0.6.0"
 validator = { version = "0.16.1", features = ["derive"] }
