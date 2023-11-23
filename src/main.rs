@@ -2,7 +2,7 @@ use crate::routes::parameter as weather_parameter;
 use crate::routes::region;
 use crate::routes::weather as weather_prediction;
 use axum::routing::get;
-use axum::Router;
+use axum::{BoxError, Router};
 use dotenvy::dotenv;
 use nusaca::database::DatabaseSettings;
 use nusaca::infrastructure::state::AppState;
@@ -13,6 +13,7 @@ use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use thiserror::Error;
 use tokio::task::JoinHandle;
+use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{self, TraceLayer};
 use tracing::{log, Level};
 use tracing_subscriber::layer::SubscriberExt;
@@ -67,6 +68,10 @@ async fn main() -> Result<(), Error> {
             weather_parameter::get_parameters,
             weather_prediction::get_predictions
         ),
+        servers(
+            (url = "http://localhost:3000", description = "Local server"),
+            (url = "https://nusaca.sahitono.space", description = "Cloud server")
+        ),
         components(
             schemas()
         ),
@@ -88,6 +93,7 @@ async fn main() -> Result<(), Error> {
             get(weather_parameter::get_parameters),
         )
         .route("/api/weathers", get(weather_prediction::get_predictions))
+        .layer(CorsLayer::new().allow_methods(Any).allow_origin(Any))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))

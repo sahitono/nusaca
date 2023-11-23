@@ -16,7 +16,7 @@ pub async fn get_regions(
                     .add(region::Column::NameEn.contains(&v)),
             )
         })
-        .apply_if(parent_id, |mut query, v| {
+        .apply_if(parent_id, |query, v| {
             query.filter(region::Column::ParentId.eq(parent_id))
         })
         .all(db_conn)

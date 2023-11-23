@@ -2,9 +2,7 @@ use bmkg_opendata::model::Area;
 use entity::region::ActiveModel;
 use entity::{region, weather_issued, weather_prediction};
 use sea_orm::ActiveValue::Set;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter, TransactionTrait,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DbConn, DbErr, EntityTrait, QueryFilter};
 
 pub async fn scrape_weathers(db_conn: &DbConn) -> Result<(), Box<dyn std::error::Error>> {
     let regions = region::Entity::find()
