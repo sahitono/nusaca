@@ -1,6 +1,6 @@
 pub mod base;
-pub mod database;
 pub mod infrastructure;
+pub mod models;
 pub mod response;
 pub mod scraper;
 pub mod use_cases;

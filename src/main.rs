@@ -1,10 +1,13 @@
 use crate::routes::parameter as weather_parameter;
 use crate::routes::region;
+use crate::routes::summary;
 use crate::routes::weather as weather_prediction;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{BoxError, Router};
+use axum::Router;
 use dotenvy::dotenv;
-use nusaca::database::DatabaseSettings;
+use nusaca::infrastructure::database::DatabaseSettings;
 use nusaca::infrastructure::state::AppState;
 use nusaca::scraper::scrape_weathers;
 use sea_orm::{Database, DatabaseConnection};
@@ -66,7 +69,9 @@ async fn main() -> Result<(), Error> {
         paths(
             region::get_regions,
             weather_parameter::get_parameters,
-            weather_prediction::get_predictions
+            weather_prediction::get_predictions,
+            summary::get_daily_summary,
+            summary::get_region_summary
         ),
         servers(
             (url = "http://localhost:3000", description = "Local server"),
@@ -93,6 +98,15 @@ async fn main() -> Result<(), Error> {
             get(weather_parameter::get_parameters),
         )
         .route("/api/weathers", get(weather_prediction::get_predictions))
+        .route(
+            "/api/summary/daily",
+            get(routes::summary::get_daily_summary),
+        )
+        .route(
+            "/api/summary/region",
+            get(routes::summary::get_region_summary),
+        )
+        .fallback(handler_404)
         .layer(CorsLayer::new().allow_methods(Any).allow_origin(Any))
         .layer(
             TraceLayer::new_for_http()
@@ -132,6 +146,9 @@ async fn spawn_task() -> JoinHandle<()> {
 
 async fn hello_world() -> &'static str {
     "Hello world"
+}
+async fn handler_404() -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, "you might be lost, that's life")
 }
 
 #[derive(Error, Debug)]

@@ -95,7 +95,7 @@ pub async fn scrape_weather(
                     .save(db_conn)
                     .await;
                     match result {
-                        Ok(res) => {}
+                        Ok(_) => {}
                         Err(err) => {
                             tracing::error!("Failed to create parameter: {}", parameter.r#type);
                             tracing::debug!("{}", err.to_string());
