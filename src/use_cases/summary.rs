@@ -1,5 +1,8 @@
 use crate::models::summary::{DailySummary, RegionSummary};
-use sea_orm::{DatabaseConnection, DbBackend, FromQueryResult, Statement};
+use entity::weather_prediction;
+use sea_orm::{
+    DatabaseConnection, DbBackend, DbConn, EntityTrait, FromQueryResult, QuerySelect, Statement,
+};
 use std::error::Error;
 
 pub async fn get_daily_summary(
@@ -35,4 +38,21 @@ pub async fn get_region_summary(
     .unwrap();
 
     Ok(daily)
+}
+
+pub async fn get_available_date(
+    db_conn: &DatabaseConnection,
+) -> Result<Vec<String>, Box<dyn Error>> {
+    let days: Vec<String> = weather_prediction::Entity::find()
+        .select_only()
+        .column(weather_prediction::Column::Timestamp)
+        .group_by(weather_prediction::Column::Timestamp)
+        .all(db_conn)
+        .await
+        .unwrap()
+        .iter()
+        .map(|x| x.timestamp.clone())
+        .collect();
+
+    Ok(days)
 }

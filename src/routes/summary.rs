@@ -34,3 +34,18 @@ pub async fn get_region_summary(State(app): State<AppState>) -> impl IntoRespons
 
     Json(BaseResponse { data: summary })
 }
+
+#[utoipa::path(
+    get,
+    path = "/api/summary/available-dates",
+    responses(
+        (status = 200, body = BaseResponse<Vec<DailySummary>>)
+    )
+)]
+pub async fn get_available_dates(State(app): State<AppState>) -> impl IntoResponse {
+    let summary = use_cases::summary::get_available_date(&app.db_connection)
+        .await
+        .unwrap();
+
+    Json(BaseResponse { data: summary })
+}

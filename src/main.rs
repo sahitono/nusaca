@@ -65,24 +65,24 @@ async fn main() -> Result<(), Error> {
 
     #[derive(OpenApi)]
     #[openapi(
-        info(title = "NUSACA API",description = "Weather prediction from BMKG open data"),
-        paths(
-            region::get_regions,
-            weather_parameter::get_parameters,
-            weather_prediction::get_predictions,
-            summary::get_daily_summary,
-            summary::get_region_summary
-        ),
-        servers(
-            (url = "http://localhost:3000", description = "Local server"),
-            (url = "https://nusaca.sahitono.space", description = "Cloud server")
-        ),
-        components(
-            schemas()
-        ),
-        tags(
-            (name = "region", description = "Region API")
-        )
+    info(title = "NUSACA API", description = "Weather prediction from BMKG open data"),
+    paths(
+    region::get_regions,
+    weather_parameter::get_parameters,
+    weather_prediction::get_predictions,
+    summary::get_daily_summary,
+    summary::get_region_summary
+    ),
+    servers(
+    (url = "http://localhost:3000", description = "Local server"),
+    (url = "https://nusaca.sahitono.space", description = "Cloud server")
+    ),
+    components(
+    schemas()
+    ),
+    tags(
+    (name = "region", description = "Region API")
+    )
     )]
     struct ApiDoc;
 
@@ -105,6 +105,10 @@ async fn main() -> Result<(), Error> {
         .route(
             "/api/summary/region",
             get(routes::summary::get_region_summary),
+        )
+        .route(
+            "/api/summary/available-dates",
+            get(routes::summary::get_available_dates),
         )
         .fallback(handler_404)
         .layer(CorsLayer::new().allow_methods(Any).allow_origin(Any))
@@ -147,6 +151,7 @@ async fn spawn_task() -> JoinHandle<()> {
 async fn hello_world() -> &'static str {
     "Hello world"
 }
+
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "you might be lost, that's life")
 }
