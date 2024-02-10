@@ -71,7 +71,8 @@ async fn main() -> Result<(), Error> {
     weather_parameter::get_parameters,
     weather_prediction::get_predictions,
     summary::get_daily_summary,
-    summary::get_region_summary
+    summary::get_region_summary,
+    summary::get_available_dates,
     ),
     servers(
     (url = "http://localhost:3000", description = "Local server"),
@@ -164,4 +165,6 @@ enum Error {
     Hyper(#[from] hyper::Error),
     #[error("error connecting to the database")]
     DBConnection(#[from] sea_orm::DbErr),
+    #[error("error parsing xml")]
+    ParseXML(#[from] serde_xml_rs::Error),
 }

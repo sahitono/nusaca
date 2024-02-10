@@ -40,6 +40,11 @@ pub async fn get_region_summary(
     Ok(daily)
 }
 
+#[derive(FromQueryResult)]
+struct AvailableDate {
+    timestamp: String,
+}
+
 pub async fn get_available_date(
     db_conn: &DatabaseConnection,
 ) -> Result<Vec<String>, Box<dyn Error>> {
@@ -47,6 +52,7 @@ pub async fn get_available_date(
         .select_only()
         .column(weather_prediction::Column::Timestamp)
         .group_by(weather_prediction::Column::Timestamp)
+        .into_model::<AvailableDate>()
         .all(db_conn)
         .await
         .unwrap()

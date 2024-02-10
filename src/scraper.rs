@@ -11,7 +11,11 @@ pub async fn scrape_weathers(db_conn: &DbConn) -> Result<(), Box<dyn std::error:
         .await?;
 
     for region in regions {
-        scrape_weather(&region.name_en, &region.id, db_conn).await?;
+        let res = scrape_weather(&region.name_en, &region.id, db_conn).await;
+        if res.is_err() {
+            tracing::info!("Failed to generate: {}", region.name_en);
+            continue;
+        }
     }
 
     Ok(())
@@ -23,17 +27,16 @@ pub async fn scrape_weather(
     db_conn: &DbConn,
 ) -> Result<(), Box<dyn std::error::Error>> {
     tracing::debug!("fetching: {}", parent_region_name);
-    let forecast = bmkg_opendata::scraper::scrape_weather(&parent_region_name.replace(' ', ""))
-        .await
-        .expect("failed to fetch");
+    let forecast =
+        bmkg_opendata::scraper::scrape_weather(&parent_region_name.replace(' ', "")).await?;
 
     tracing::debug!("storing to db: {}", parent_region_name);
+    let forecast_data = forecast.forecast.first().unwrap().clone();
 
     let existing_weather = weather_issued::Entity::find()
-        .filter(weather_issued::Column::Timestamp.eq(&forecast.forecast.issue.timestamp))
+        .filter(weather_issued::Column::Timestamp.eq(&forecast_data.issue.timestamp))
         .all(db_conn)
-        .await
-        .unwrap();
+        .await?;
 
     if !existing_weather.is_empty() {
         tracing::debug!("weather already exist, skipping");
@@ -41,18 +44,18 @@ pub async fn scrape_weather(
     };
 
     let issued = weather_issued::ActiveModel {
-        timestamp: Set(forecast.forecast.issue.timestamp),
+        timestamp: Set(forecast_data.issue.timestamp.clone()),
         source: Set(forecast.source),
         production_center: Set(forecast.production_center),
         ..Default::default()
     }
     .save(db_conn)
     .await
-    .expect("Failed to save forecast issue");
+    .unwrap();
 
     let issued_id = issued.id.unwrap();
 
-    for area in forecast.forecast.area {
+    for area in &forecast_data.area {
         // let trx = db_conn.begin().await?;
 
         if area.parameter.is_none() {
@@ -80,14 +83,16 @@ pub async fn scrape_weather(
             }
         };
 
-        for parameter in area.parameter.unwrap() {
-            for time_range in parameter.time_range {
-                for value in time_range.value {
+        let parameters = area.parameter.as_deref().unwrap();
+
+        for parameter in parameters {
+            for time_range in &parameter.time_range {
+                for value in &time_range.value {
                     let result = weather_prediction::ActiveModel {
                         value: Set(value.value.clone()),
                         region_id: Set(region_id),
                         timestamp: Set(time_range.datetime.clone()),
-                        unit: Set(value.unit),
+                        unit: Set(value.unit.clone()),
                         parameter_id: Set(parameter.id.clone()),
                         issued_id: Set(issued_id),
                         ..Default::default()

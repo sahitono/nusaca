@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ForecastData {
-    pub forecast: Forecast,
+    pub forecast: Vec<Forecast>,
     pub source: String,
     #[serde(rename = "productioncenter")]
     pub production_center: String,
